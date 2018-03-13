@@ -33,11 +33,15 @@
 
 """Pure-Python RSA implementation."""
 
+
+from __future__ import print_function
 import os
 import math
+import base64
+import binascii
 import hashlib
 
-from .pem import *
+from pem import *
 
 
 def SHA1(x):
@@ -526,7 +530,7 @@ class RSAKey(object):
         return False
 
     def generate(bits):
-        key = RSAKey()
+        key = Python_RSAKey()
         p = getRandomPrime(bits//2, False)
         q = getRandomPrime(bits//2, False)
         t = lcm(p-1, q-1)
@@ -540,3 +544,4 @@ class RSAKey(object):
         key.qInv = invMod(q, p)
         return key
     generate = staticmethod(generate)
+

@@ -13,7 +13,7 @@ class TrezorPlugin(TrezorCompatiblePlugin):
 
     def __init__(self, *args):
         try:
-            from . import client
+            import client
             import trezorlib
             import trezorlib.ckd_public
             import trezorlib.transport_hid

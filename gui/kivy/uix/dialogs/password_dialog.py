@@ -70,7 +70,6 @@ Builder.load_string('''
                 text: _('Cancel')
                 on_release:
                     popup.dismiss()
-                    popup.callback(None)
 ''')
 
 

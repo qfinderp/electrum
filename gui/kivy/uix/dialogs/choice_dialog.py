@@ -46,7 +46,6 @@ class ChoiceDialog(Factory.Popup):
 
     def __init__(self, title, choices, key, callback):
         Factory.Popup.__init__(self)
-        print(choices, type(choices))
         if type(choices) is list:
             choices = dict(map(lambda x: (x,x), choices))
         layout = self.ids.choices

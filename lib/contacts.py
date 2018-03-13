@@ -20,12 +20,17 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+import sys
 import re
 import dns
+import os
 import json
 
-from . import bitcoin
-from . import dnssec
+import bitcoin
+import dnssec
+from util import print_error
+from i18n import _
 
 
 class Contacts(dict):
@@ -113,7 +118,7 @@ class Contacts(dict):
             return None
             
     def _validate(self, data):
-        for k,v in list(data.items()):
+        for k,v in data.items():
             if k == 'contacts':
                 return self._validate(v)
             if not bitcoin.is_address(k):

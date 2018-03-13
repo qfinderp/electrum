@@ -41,7 +41,7 @@ class HW_PluginBase(BasePlugin):
         self.keystore_class.plugin = self
 
     def is_enabled(self):
-        return True
+        return self.libraries_available
 
     def device_manager(self):
         return self.parent.device_manager

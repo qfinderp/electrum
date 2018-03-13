@@ -39,6 +39,7 @@ except ImportError:
 # minimum required version for kivy
 kivy.require('1.8.0')
 from kivy.logger import Logger
+from main_window import ElectrumWindow
 
 
 
@@ -53,7 +54,6 @@ class ElectrumGui:
         self.plugins = plugins
 
     def main(self):
-        from .main_window import ElectrumWindow
         self.config.open_last_wallet()
         w = ElectrumWindow(config=self.config,
                            network=self.network,

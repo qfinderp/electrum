@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 # python setup.py sdist --format=zip,gztar
 
@@ -11,8 +11,8 @@ import argparse
 
 version = imp.load_source('version', 'lib/version.py')
 
-if sys.version_info[:3] < (3, 4, 0):
-    sys.exit("Error: Electrum requires Python version >= 3.4.0...")
+if sys.version_info[:3] < (2, 7, 0):
+    sys.exit("Error: Electrum requires Python version >= 2.7.0...")
 
 data_files = []
 
@@ -36,14 +36,14 @@ setup(
     name="Electrum",
     version=version.ELECTRUM_VERSION,
     install_requires=[
-        'pyaes>=0.1a1',
+        'pyaes',
         'ecdsa>=0.9',
         'pbkdf2',
         'requests',
         'qrcode',
         'protobuf',
         'dnspython',
-        'jsonrpclib-pelix',
+        'jsonrpclib',
         'PySocks>=1.6.6',
     ],
     packages=[
@@ -71,8 +71,6 @@ setup(
     },
     package_data={
         'electrum': [
-            'servers.json',
-            'servers_testnet.json',
             'currencies.json',
             'www/index.html',
             'wordlist/*.txt',
@@ -85,6 +83,6 @@ setup(
     author="Thomas Voegtlin",
     author_email="thomasv@electrum.org",
     license="MIT Licence",
-    url="https://electrum.tools",
+    url="https://electrum.org",
     long_description="""Lightweight Bitcoin Wallet"""
 )

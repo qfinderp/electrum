@@ -22,8 +22,10 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from .util import *
+
+from util import *
 from electrum.i18n import _
+from electrum.bitcoin import is_address
 
 
 class UTXOList(MyTreeWidget):
@@ -52,11 +54,11 @@ class UTXOList(MyTreeWidget):
             utxo_item.setFont(4, QFont(MONOSPACE_FONT))
             utxo_item.setData(0, Qt.UserRole, name)
             if self.wallet.is_frozen(address):
-                utxo_item.setBackground(0, ColorScheme.BLUE.as_color(True))
+                utxo_item.setBackgroundColor(0, QColor('lightblue'))
             self.addChild(utxo_item)
 
     def create_menu(self, position):
-        selected = [x.data(0, Qt.UserRole) for x in self.selectedItems()]
+        selected = [str(x.data(0, Qt.UserRole).toString()) for x in self.selectedItems()]
         if not selected:
             return
         menu = QMenu()
@@ -69,7 +71,3 @@ class UTXOList(MyTreeWidget):
             menu.addAction(_("Details"), lambda: self.parent.show_transaction(tx))
 
         menu.exec_(self.viewport().mapToGlobal(position))
-
-    def on_permit_edit(self, item, column):
-        # disable editing fields in this tab (labels)
-        return False

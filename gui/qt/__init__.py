@@ -23,43 +23,38 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import signal
 import sys
-
+import os
+import signal
 
 try:
-    import PyQt5
+    import PyQt4
 except Exception:
-    sys.exit("Error: Could not import PyQt5 on Linux systems, you may try 'sudo apt-get install python3-pyqt5'")
+    sys.exit("Error: Could not import PyQt4 on Linux systems, you may try 'sudo apt-get install python-qt4'")
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-import PyQt5.QtCore as QtCore
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+import PyQt4.QtCore as QtCore
 
 from electrum.i18n import _, set_language
 from electrum.plugins import run_hook
-from electrum import WalletStorage
-# from electrum.synchronizer import Synchronizer
-# from electrum.verifier import SPV
-# from electrum.util import DebugMem
-from electrum.util import UserCancelled, print_error
-# from electrum.wallet import Abstract_Wallet
-
-from .installwizard import InstallWizard, GoBack
+from electrum import SimpleConfig, Wallet, WalletStorage
+from electrum.synchronizer import Synchronizer
+from electrum.verifier import SPV
+from electrum.util import DebugMem, UserCancelled, InvalidPassword
+from electrum.wallet import Abstract_Wallet
+from installwizard import InstallWizard, GoBack
 
 
 try:
-    from . import icons_rc
-except Exception as e:
-    print(e)
-    print("Error: Could not find icons file.")
-    print("Please run 'pyrcc5 icons.qrc -o gui/qt/icons_rc.py', and reinstall Electrum")
+    import icons_rc
+except Exception:
+    print "Error: Could not find icons file."
+    print "Please run 'pyrcc4 icons.qrc -o gui/qt/icons_rc.py', and reinstall Electrum"
     sys.exit(1)
 
-from .util import *   # * needed for plugins
-from .main_window import ElectrumWindow
-from .network_dialog import NetworkDialog
+from util import *   # * needed for plugins
+from main_window import ElectrumWindow
 
 
 class OpenFileEventFilter(QObject):
@@ -75,13 +70,6 @@ class OpenFileEventFilter(QObject):
         return False
 
 
-class QElectrumApplication(QApplication):
-    new_window_signal = pyqtSignal(str, object)
-
-
-class QNetworkUpdatedSignalObject(QObject):
-    network_updated_signal = pyqtSignal(str, object)
-
 
 class ElectrumGui:
 
@@ -91,17 +79,15 @@ class ElectrumGui:
         # GC-ed when windows are closed
         #network.add_jobs([DebugMem([Abstract_Wallet, SPV, Synchronizer,
         #                            ElectrumWindow], interval=5)])
-        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
         self.config = config
         self.daemon = daemon
         self.plugins = plugins
         self.windows = []
         self.efilter = OpenFileEventFilter(self.windows)
-        self.app = QElectrumApplication(sys.argv)
+        self.app = QApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
         self.timer = Timer()
         self.nd = None
-        self.network_updated_signal_obj = QNetworkUpdatedSignalObject()
         # init tray
         self.dark_icon = self.config.get("dark_icon", False)
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
@@ -109,18 +95,13 @@ class ElectrumGui:
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
-        self.app.new_window_signal.connect(self.start_new_window)
+        self.app.connect(self.app, QtCore.SIGNAL('new_window'), self.start_new_window)
         run_hook('init_qt', self)
-        ColorScheme.update_from_widget(QWidget())
 
     def build_tray_menu(self):
         # Avoid immediate GC of old menu when window closed via its action
-        if self.tray.contextMenu() is None:
-            m = QMenu()
-            self.tray.setContextMenu(m)
-        else:
-            m = self.tray.contextMenu()
-            m.clear()
+        self.old_menu = self.tray.contextMenu()
+        m = QMenu()
         for window in self.windows:
             submenu = m.addMenu(window.wallet.basename())
             submenu.addAction(_("Show/Hide"), window.show_or_hide)
@@ -128,6 +109,7 @@ class ElectrumGui:
         m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
         m.addAction(_("Exit Electrum"), self.close)
+        self.tray.setContextMenu(m)
 
     def tray_icon(self):
         if self.dark_icon:
@@ -155,9 +137,10 @@ class ElectrumGui:
 
     def new_window(self, path, uri=None):
         # Use a signal as can be called from daemon thread
-        self.app.new_window_signal.emit(path, uri)
+        self.app.emit(SIGNAL('new_window'), path, uri)
 
     def show_network_dialog(self, parent):
+        from network_dialog import NetworkDialog
         if not self.daemon.network:
             parent.show_warning(_('You are using Electrum in offline mode; restart Electrum if you want to get connected'), title=_('Offline'))
             return
@@ -166,8 +149,7 @@ class ElectrumGui:
             self.nd.show()
             self.nd.raise_()
             return
-        self.nd = NetworkDialog(self.daemon.network, self.config,
-                                self.network_updated_signal_obj)
+        self.nd = NetworkDialog(self.daemon.network, self.config)
         self.nd.show()
 
     def create_window_for_wallet(self, wallet):
@@ -186,21 +168,11 @@ class ElectrumGui:
                 w.bring_to_top()
                 break
         else:
-            try:
-                wallet = self.daemon.load_wallet(path, None)
-            except  BaseException as e:
-                d = QMessageBox(QMessageBox.Warning, _('Error'), 'Cannot load wallet:\n' + str(e))
-                d.exec_()
-                return
+            wallet = self.daemon.load_wallet(path, None)
             if not wallet:
-                storage = WalletStorage(path, manual_upgrades=True)
+                storage = WalletStorage(path)
                 wizard = InstallWizard(self.config, self.app, self.plugins, storage)
-                try:
-                    wallet = wizard.run_and_get_wallet()
-                except UserCancelled:
-                    pass
-                except GoBack as e:
-                    print_error('[start_new_window] Exception caught (GoBack)', e)
+                wallet = wizard.run_and_get_wallet()
                 wizard.terminate()
                 if not wallet:
                     return
@@ -209,11 +181,6 @@ class ElectrumGui:
             w = self.create_window_for_wallet(wallet)
         if uri:
             w.pay_to_URI(uri)
-        w.bring_to_top()
-        w.setWindowState(w.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
-
-        # this will activate the window
-        w.activateWindow()
         return w
 
     def close_window(self, window):
@@ -240,7 +207,6 @@ class ElectrumGui:
         except GoBack:
             return
         except:
-            import traceback
             traceback.print_exc(file=sys.stdout)
             return
         self.timer.start()
@@ -249,23 +215,11 @@ class ElectrumGui:
         if not self.start_new_window(path, self.config.get('url')):
             return
         signal.signal(signal.SIGINT, lambda *args: self.app.quit())
-
-        def quit_after_last_window():
-            # on some platforms, not only does exec_ not return but not even
-            # aboutToQuit is emitted (but following this, it should be emitted)
-            if self.app.quitOnLastWindowClosed():
-                self.app.quit()
-        self.app.lastWindowClosed.connect(quit_after_last_window)
-
-        def clean_up():
-            # Shut down the timer cleanly
-            self.timer.stop()
-            # clipboard persistence. see http://www.mail-archive.com/pyqt@riverbankcomputing.com/msg17328.html
-            event = QtCore.QEvent(QtCore.QEvent.Clipboard)
-            self.app.sendEvent(self.app.clipboard(), event)
-            self.tray.hide()
-        self.app.aboutToQuit.connect(clean_up)
-
         # main loop
         self.app.exec_()
-        # on some platforms the exec_ call may not return, so use clean_up()
+        # Shut down the timer cleanly
+        self.timer.stop()
+        # clipboard persistence. see http://www.mail-archive.com/pyqt@riverbankcomputing.com/msg17328.html
+        event = QtCore.QEvent(QtCore.QEvent.Clipboard)
+        self.app.sendEvent(self.app.clipboard(), event)
+        self.tray.hide()

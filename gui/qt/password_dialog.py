@@ -23,11 +23,10 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 from electrum.i18n import _
-from .util import *
+from util import *
 import re
 import math
 
@@ -40,7 +39,7 @@ def check_password_strength(password):
     :param password: password entered by user in New Password
     :return: password strength Weak or Medium or Strong
     '''
-    password = password
+    password = unicode(password)
     n = math.log(len(set(password)))
     num = re.search("[0-9]", password) is not None and re.match("^[0-9]*$", password) is None
     caps = password != password.upper() and password != password.lower()
@@ -152,11 +151,11 @@ class PasswordLayout(object):
 
     def old_password(self):
         if self.kind == PW_CHANGE:
-            return self.pw.text() or None
+            return unicode(self.pw.text()) or None
         return None
 
     def new_password(self):
-        pw = self.new_pw.text()
+        pw = unicode(self.new_pw.text())
         # Empty passphrases are fine and returned empty.
         if pw == "" and self.kind != PW_PASSPHRASE:
             pw = None
@@ -213,4 +212,4 @@ class PasswordDialog(WindowModalDialog):
     def run(self):
         if not self.exec_():
             return
-        return self.pw.text()
+        return unicode(self.pw.text())

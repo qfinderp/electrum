@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import (QLineEdit, QStyle, QStyleOptionFrame)
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 
 from decimal import Decimal
 from electrum.util import format_satoshis_plain
-
 
 class MyLineEdit(QLineEdit):
     frozen = pyqtSignal()
@@ -33,7 +31,7 @@ class AmountEdit(MyLineEdit):
         return 8
 
     def numbify(self):
-        text = self.text().strip()
+        text = unicode(self.text()).strip()
         if text == '!':
             self.shortcut.emit()
             return
@@ -55,7 +53,7 @@ class AmountEdit(MyLineEdit):
     def paintEvent(self, event):
         QLineEdit.paintEvent(self, event)
         if self.base_unit:
-            panel = QStyleOptionFrame()
+            panel = QStyleOptionFrameV2()
             self.initStyleOption(panel)
             textRect = self.style().subElementRect(QStyle.SE_LineEditContents, panel, self)
             textRect.adjust(2, 0, -10, 0)

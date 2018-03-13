@@ -102,9 +102,9 @@ class BumpFeeDialog(Factory.Popup):
         if self.dynfees:
             if self.config.has_fee_estimates():
                 dynfee = self.config.dynfee(value)
-                return int(dynfee * self.tx_size // 1000)
+                return dynfee * self.tx_size // 1000
         else:
-            return int(value*self.fee_step * self.tx_size // 1000)
+            return value*self.fee_step * self.tx_size // 1000
 
     def on_ok(self):
         new_fee = self.get_fee()

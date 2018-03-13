@@ -31,13 +31,14 @@ version.filename = %(source.dir)s/contrib/versions.py
 #version = 1.9.8
 
 # (list) Application requirements
-requirements = python3crystax, android, openssl, plyer, kivy==master
+requirements = hostpython2, android, openssl, pycrypto, pil, plyer, kivy==master
 
 # (str) Presplash of the application
 #presplash.filename = %(source.dir)s/gui/kivy/theming/splash.png
 presplash.filename = %(source.dir)s/icons/electrum_presplash.png
 
 # (str) Icon of the application
+#icon.filename = %(source.dir)s/icons/electrum_android_launcher_icon.png
 icon.filename = %(source.dir)s/icons/electrum_launcher.png
 
 # (str) Supported orientation (one of landscape, portrait or all)
@@ -52,8 +53,7 @@ fullscreen = False
 #
 
 # (list) Permissions
-android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, CAMERA
-
+android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE
 # (int) Android API to use
 #android.api = 14
 
@@ -70,7 +70,7 @@ android.permissions = INTERNET, WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE, C
 android.private_storage = True
 
 # (str) Android NDK directory (if empty, it will be automatically downloaded.)
-android.ndk_path = /opt/crystax-ndk-10.3.2
+#android.ndk_path =
 
 # (str) Android SDK directory (if empty, it will be automatically downloaded.)
 #android.sdk_path =
@@ -87,11 +87,7 @@ android.ndk_path = /opt/crystax-ndk-10.3.2
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-android.add_src = gui/kivy/data/java-classes/
-
-android.gradle_dependencies = me.dm7.barcodescanner:zxing:1.9.8
-
-android.add_activities = org.electrum.qr.SimpleScannerActivity
+#android.add_src =
 
 # (str) python-for-android branch to use, if not master, useful to try
 # not yet merged features.

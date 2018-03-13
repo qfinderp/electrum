@@ -1,14 +1,13 @@
-import os
-
 from kivy.app import App
 from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
+from electrum_gui.kivy.i18n import _
 from electrum.util import base_units
 
-from ...i18n import _
-from .label_dialog import LabelDialog
+import os
+from label_dialog import LabelDialog
 
 Builder.load_string('''
 #:import os os

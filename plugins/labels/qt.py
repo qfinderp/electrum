@@ -1,8 +1,7 @@
 from functools import partial
 
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QVBoxLayout)
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 
 from electrum.plugins import hook
 from electrum.i18n import _
@@ -10,18 +9,14 @@ from electrum_gui.qt import EnterButton
 from electrum_gui.qt.util import ThreadedButton, Buttons
 from electrum_gui.qt.util import WindowModalDialog, OkButton
 
-from .labels import LabelsPlugin
-
-
-class QLabelsSignalObject(QObject):
-    labels_changed_signal = pyqtSignal(object)
+from labels import LabelsPlugin
 
 
 class Plugin(LabelsPlugin):
 
     def __init__(self, *args):
         LabelsPlugin.__init__(self, *args)
-        self.obj = QLabelsSignalObject()
+        self.obj = QObject()
 
     def requires_settings(self):
         return True
@@ -52,14 +47,14 @@ class Plugin(LabelsPlugin):
         return bool(d.exec_())
 
     def on_pulled(self, wallet):
-        self.obj.labels_changed_signal.emit(wallet)
+        self.obj.emit(SIGNAL('labels_changed'), wallet)
 
     def done_processing(self, dialog, result):
         dialog.show_message(_("Your labels have been synchronised."))
 
     @hook
     def on_new_window(self, window):
-        self.obj.labels_changed_signal.connect(window.update_tabs)
+        window.connect(window.app, SIGNAL('labels_changed'), window.update_tabs)
         self.start_wallet(window.wallet)
 
     @hook

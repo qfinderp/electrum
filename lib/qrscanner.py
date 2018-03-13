@@ -25,7 +25,7 @@
 
 import os
 import sys
-import ctypes
+from ctypes import cdll, c_char_p
 
 if sys.platform == 'darwin':
     name = 'libzbar.dylib'
@@ -35,7 +35,7 @@ else:
     name = 'libzbar.so.0'
 
 try:
-    libzbar = ctypes.cdll.LoadLibrary(name)
+    libzbar = cdll.LoadLibrary(name)
 except OSError:
     libzbar = None
 
@@ -43,14 +43,10 @@ except OSError:
 def scan_barcode(device='', timeout=-1, display=True, threaded=False):
     if libzbar is None:
         raise RuntimeError("Cannot start QR scanner; zbar not available.")
-    libzbar.zbar_symbol_get_data.restype = ctypes.c_char_p
-    libzbar.zbar_processor_create.restype = ctypes.POINTER(ctypes.c_int)
-    libzbar.zbar_processor_get_results.restype = ctypes.POINTER(ctypes.c_int)
-    libzbar.zbar_symbol_set_first_symbol.restype = ctypes.POINTER(ctypes.c_int)
+    libzbar.zbar_symbol_get_data.restype = c_char_p
     proc = libzbar.zbar_processor_create(threaded)
     libzbar.zbar_processor_request_size(proc, 640, 480)
-    if libzbar.zbar_processor_init(proc, device.encode('utf-8'), display) != 0:
-        raise RuntimeError("Can not start QR scanner; initialization failed.")
+    libzbar.zbar_processor_init(proc, device, display)
     libzbar.zbar_processor_set_visible(proc)
     if libzbar.zbar_process_one(proc, timeout):
         symbols = libzbar.zbar_processor_get_results(proc)
@@ -63,7 +59,7 @@ def scan_barcode(device='', timeout=-1, display=True, threaded=False):
         return
     symbol = libzbar.zbar_symbol_set_first_symbol(symbols)
     data = libzbar.zbar_symbol_get_data(symbol)
-    return data.decode('utf8')
+    return data
 
 def _find_system_cameras():
     device_root = "/sys/class/video4linux"
@@ -71,8 +67,7 @@ def _find_system_cameras():
     if os.path.exists(device_root):
         for device in os.listdir(device_root):
             try:
-                with open(os.path.join(device_root, device, 'name')) as f:
-                    name = f.read()
+                name = open(os.path.join(device_root, device, 'name')).read()
             except IOError:
                 continue
             name = name.strip('\n')

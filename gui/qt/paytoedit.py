@@ -23,16 +23,15 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import QCompleter, QPlainTextEdit
-from .qrtextedit import ScanQRTextEdit
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from qrtextedit import ScanQRTextEdit
 
 import re
 from decimal import Decimal
 from electrum import bitcoin
 
-from . import util
+import util
 
 RE_ADDRESS = '[1-9A-HJ-NP-Za-km-z]{26,}'
 RE_ALIAS = '(.*?)\s*\<([1-9A-HJ-NP-Za-km-z]{26,})\>'
@@ -68,10 +67,10 @@ class PayToEdit(ScanQRTextEdit):
             button.setHidden(b)
 
     def setGreen(self):
-        self.setStyleSheet(util.ColorScheme.GREEN.as_stylesheet(True))
+        self.setStyleSheet(util.GREEN_BG)
 
     def setExpired(self):
-        self.setStyleSheet(util.ColorScheme.RED.as_stylesheet(True))
+        self.setStyleSheet(util.RED_BG)
 
     def parse_address_and_amount(self, line):
         x, y = line.split(',')
@@ -116,7 +115,7 @@ class PayToEdit(ScanQRTextEdit):
         if self.is_pr:
             return
         # filter out empty lines
-        lines = [i for i in self.lines() if i]
+        lines = filter(lambda x: x, self.lines())
         outputs = []
         total = 0
         self.payto_address = None
@@ -176,7 +175,7 @@ class PayToEdit(ScanQRTextEdit):
         return self.outputs[:]
 
     def lines(self):
-        return self.toPlainText().split('\n')
+        return unicode(self.toPlainText()).split('\n')
 
     def is_multiline(self):
         return len(self.lines()) > 1
@@ -186,9 +185,8 @@ class PayToEdit(ScanQRTextEdit):
         self.update_size()
 
     def update_size(self):
-        lineHeight = QFontMetrics(self.document().defaultFont()).height()
         docHeight = self.document().size().height()
-        h = docHeight * lineHeight + 11
+        h = docHeight*17 + 11
         if self.heightMin <= h <= self.heightMax:
             self.setMinimumHeight(h)
             self.setMaximumHeight(h)
@@ -206,10 +204,10 @@ class PayToEdit(ScanQRTextEdit):
         if self.c.widget() != self:
             return
         tc = self.textCursor()
-        extra = len(completion) - len(self.c.completionPrefix())
+        extra = completion.length() - self.c.completionPrefix().length()
         tc.movePosition(QTextCursor.Left)
         tc.movePosition(QTextCursor.EndOfWord)
-        tc.insertText(completion[-extra:])
+        tc.insertText(completion.right(extra))
         self.setTextCursor(tc)
 
 
@@ -239,24 +237,25 @@ class PayToEdit(ScanQRTextEdit):
         QPlainTextEdit.keyPressEvent(self, e)
 
         ctrlOrShift = e.modifiers() and (Qt.ControlModifier or Qt.ShiftModifier)
-        if self.c is None or (ctrlOrShift and not e.text()):
+        if self.c is None or (ctrlOrShift and e.text().isEmpty()):
             return
 
-        eow = "~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-="
-        hasModifier = (e.modifiers() != Qt.NoModifier) and not ctrlOrShift
+        eow = QString("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-=")
+        hasModifier = (e.modifiers() != Qt.NoModifier) and not ctrlOrShift;
         completionPrefix = self.textUnderCursor()
 
-        if hasModifier or not e.text() or len(completionPrefix) < 1 or eow.find(e.text()[-1]) >= 0:
+        if hasModifier or e.text().isEmpty() or completionPrefix.length() < 1 or eow.contains(e.text().right(1)):
             self.c.popup().hide()
             return
 
         if completionPrefix != self.c.completionPrefix():
-            self.c.setCompletionPrefix(completionPrefix)
+            self.c.setCompletionPrefix(completionPrefix);
             self.c.popup().setCurrentIndex(self.c.completionModel().index(0, 0))
 
         cr = self.cursorRect()
         cr.setWidth(self.c.popup().sizeHintForColumn(0) + self.c.popup().verticalScrollBar().sizeHint().width())
         self.c.complete(cr)
+
 
     def qr_input(self):
         data = super(PayToEdit,self).qr_input()
@@ -277,9 +276,6 @@ class PayToEdit(ScanQRTextEdit):
             return
         self.previous_payto = key
         if not (('.' in key) and (not '<' in key) and (not ' ' in key)):
-            return
-        parts = key.split(sep=',')  # assuming single line
-        if parts and len(parts) > 0 and bitcoin.is_address(parts[0]):
             return
         try:
             data = self.win.contacts.resolve(key)

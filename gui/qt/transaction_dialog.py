@@ -22,20 +22,22 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import copy
 import datetime
 import json
 
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+import PyQt4
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
+import PyQt4.QtCore as QtCore
 
+from electrum import transaction
 from electrum.bitcoin import base_encode
 from electrum.i18n import _
 from electrum.plugins import run_hook
 
-from electrum.util import bfh
-from .util import *
+from util import *
 
 dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 
@@ -63,7 +65,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         self.saved = False
         self.desc = desc
 
-        self.setMinimumWidth(750)
+        self.setMinimumWidth(660)
         self.setWindowTitle(_("Transaction"))
 
         vbox = QVBoxLayout()
@@ -143,12 +145,13 @@ class TxDialog(QDialog, MessageBoxMixin):
             dialogs.remove(self)
 
     def show_qr(self):
-        text = bfh(str(self.tx))
+        text = str(self.tx).decode('hex')
         text = base_encode(text, base=43)
         try:
             self.main_window.show_qrcode(text, 'Transaction', parent=self)
         except Exception as e:
             self.show_message(str(e))
+
 
     def sign(self):
         def sign_done(success):
@@ -178,9 +181,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         tx_hash, status, label, can_broadcast, can_rbf, amount, fee, height, conf, timestamp, exp_n = self.wallet.get_tx_info(self.tx)
         size = self.tx.estimated_size()
         self.broadcast_button.setEnabled(can_broadcast)
-        can_sign = not self.tx.is_complete() and \
-            (self.wallet.can_sign(self.tx) or bool(self.main_window.tx_external_keypairs))
-        self.sign_button.setEnabled(can_sign)
+        self.sign_button.setEnabled(self.wallet.can_sign(self.tx))
         self.tx_hash_e.setText(tx_hash or _('Unknown'))
         if desc is None:
             self.tx_desc.hide()
@@ -208,7 +209,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         size_str = _("Size:") + ' %d bytes'% size
         fee_str = _("Fee") + ': %s'% (format_amount(fee) + ' ' + base_unit if fee is not None else _('unknown'))
         if fee is not None:
-            fee_str += '  ( %s ) '%  self.main_window.format_fee_rate(fee/size*1000)
+            fee_str += '  ( %s )' % (format_amount(fee * 1000 / size) + ' ' + base_unit + '/kB')
         self.amount_label.setText(amount_str)
         self.fee_label.setText(fee_str)
         self.size_label.setText(size_str)
@@ -221,7 +222,7 @@ class TxDialog(QDialog, MessageBoxMixin):
         vbox.addWidget(QLabel(_("Inputs") + ' (%d)'%len(self.tx.inputs())))
         ext = QTextCharFormat()
         rec = QTextCharFormat()
-        rec.setBackground(QBrush(ColorScheme.GREEN.as_color(background=True)))
+        rec.setBackground(QBrush(QColor("lightgreen")))
         rec.setToolTip(_("Wallet receive address"))
         chg = QTextCharFormat()
         chg.setBackground(QBrush(QColor("yellow")))
